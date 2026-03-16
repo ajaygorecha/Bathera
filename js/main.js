@@ -6,6 +6,20 @@
   'use strict';
 
   /* ----------------------------------------------------------
+     PRELOADER
+  ---------------------------------------------------------- */
+  const preloader = document.getElementById('preloader');
+  if (preloader) {
+    // Hide after bar animation finishes (~2s total)
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        preloader.classList.add('hide');
+        setTimeout(() => preloader.remove(), 500);
+      }, 400);
+    });
+  }
+
+  /* ----------------------------------------------------------
      NAVIGATION — Sticky scroll + Mobile toggle
   ---------------------------------------------------------- */
   const navbar = document.querySelector('.navbar-bathera');
@@ -253,6 +267,72 @@
       );
     }
 
+    // Why-choose rows stagger
+    const whyRows = gsap.utils.toArray('.why-row');
+    if (whyRows.length) {
+      gsap.fromTo(whyRows,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1, y: 0, duration: 0.7, ease, stagger: 0.12,
+          scrollTrigger: { trigger: '.why-rows', start: 'top 80%', toggleActions: 'play none none none' }
+        }
+      );
+    }
+
+    const whyHeader = document.querySelector('.why-header-row');
+    if (whyHeader) {
+      gsap.fromTo(whyHeader.children,
+        { opacity: 0, y: 30 },
+        {
+          opacity: 1, y: 0, duration: 0.9, ease, stagger: 0.2,
+          scrollTrigger: { trigger: whyHeader, start: 'top 82%', toggleActions: 'play none none none' }
+        }
+      );
+    }
+
+    // Parallax slider — GSAP horizontal scroll via ScrollTrigger
+    const track = document.getElementById('productsTrack');
+    if (track) {
+      const slides = track.querySelectorAll('.pslide');
+      const totalSlides = slides.length;
+      // Move track by: (total width - viewport width)
+      const getScrollAmount = () => -(track.scrollWidth - window.innerWidth + 56);
+
+      const sliderTween = gsap.to(track, {
+        x: getScrollAmount,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.products-pin-wrap',
+          start: 'top top+=80',
+          end: () => `+=${Math.abs(getScrollAmount())}`,
+          pin: true,
+          scrub: 1.2,
+          invalidateOnRefresh: true,
+        }
+      });
+
+      // Also animate individual slide images for parallax depth
+      slides.forEach(slide => {
+        const img = slide.querySelector('.pslide-img');
+        if (img) {
+          gsap.fromTo(img,
+            { x: '8%' },
+            {
+              x: '-8%',
+              ease: 'none',
+              scrollTrigger: {
+                trigger: '.products-pin-wrap',
+                start: 'top top+=80',
+                end: () => `+=${Math.abs(getScrollAmount())}`,
+                scrub: 2,
+                invalidateOnRefresh: true,
+              }
+            }
+          );
+        }
+      });
+    }
+
   } // end gsap block
 
   /* ----------------------------------------------------------
@@ -281,6 +361,39 @@
         }, 3000);
       }, 1500);
     });
+  }
+
+  /* ----------------------------------------------------------
+     PRODUCTS TRACK — Drag scroll fallback (non-pinned context)
+  ---------------------------------------------------------- */
+  const dragTrack = document.getElementById('productsTrack');
+  if (dragTrack) {
+    let isDown = false, startX = 0, scrollLeft = 0;
+
+    const parent = dragTrack.parentElement;
+
+    parent.addEventListener('mousedown', e => {
+      isDown = true;
+      parent.style.cursor = 'grabbing';
+      startX = e.pageX - parent.offsetLeft;
+      scrollLeft = parent.scrollLeft;
+    });
+    parent.addEventListener('mouseleave', () => { isDown = false; parent.style.cursor = ''; });
+    parent.addEventListener('mouseup', () => { isDown = false; parent.style.cursor = ''; });
+    parent.addEventListener('mousemove', e => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - parent.offsetLeft;
+      parent.scrollLeft = scrollLeft - (x - startX) * 1.4;
+    });
+
+    // Touch
+    let touchStartX = 0;
+    parent.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; scrollLeft = parent.scrollLeft; }, { passive: true });
+    parent.addEventListener('touchmove', e => {
+      const dx = touchStartX - e.touches[0].clientX;
+      parent.scrollLeft = scrollLeft + dx * 1.2;
+    }, { passive: true });
   }
 
   /* ----------------------------------------------------------
